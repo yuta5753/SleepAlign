@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>睡眠解析レポート 詳細版</title>
+<style>
+  @page { size: A4; margin: 15mm 12mm; }
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; border-radius: 0; page-break-after: always; }
+    .page:last-child { page-break-after: auto; }
+  }
+  body {
+    font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: #e8eaed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 595px;
+    background: white;
+    padding: 32px 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+  }
+
+  /* Header (cover page) */
+  .header { text-align:center; margin-bottom:20px; padding-bottom:14px; border-bottom:3px solid #2c5f8a; }
+  .header-en { font-size:9px; color:#aaa; letter-spacing:2px; margin-bottom:4px; }
+  .header-title { font-size:20px; font-weight:bold; color:#2c5f8a; }
+  .header-subtitle { font-size:11px; color:#666; margin-top:6px; }
+
+  /* Page header (compact, pages 2+) */
+  .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:8px; border-bottom:2px solid #2c5f8a; font-size:10px; color:#999; }
+
+  /* Section */
+  .section { margin-bottom:22px; }
+  .section-title { font-size:14px; font-weight:bold; color:#2c5f8a; margin-bottom:10px; padding:6px 10px; background:#f0f5fa; border-radius:6px; border-left:4px solid #2c5f8a; }
+  .section-body { font-size:12px; color:#444; line-height:1.8; padding:0 4px; }
+  .section-body p { margin:0 0 8px; }
+
+  /* Data table */
+  .data-table { width:100%; border-collapse:collapse; font-size:10px; margin:10px 0; }
+  .data-table th { background:#2c5f8a; color:white; padding:6px 8px; text-align:center; font-weight:normal; }
+  .data-table td { padding:5px 8px; border-bottom:1px solid #eee; text-align:center; }
+  .data-table tr:nth-child(even) td { background:#f9fbfd; }
+
+  /* Highlight box (orange) */
+  .highlight-box { background:#fff8f0; border:1px solid #fce4c0; border-radius:8px; padding:12px 14px; margin:10px 0; }
+  .highlight-box-title { font-size:11px; font-weight:bold; color:#e67e22; margin-bottom:4px; }
+  .highlight-box-body { font-size:11px; color:#555; line-height:1.7; }
+
+  /* Info box (blue) */
+  .info-box { background:#f0f5fa; border-radius:8px; padding:12px 14px; margin:10px 0; }
+  .info-box-title { font-size:11px; font-weight:bold; color:#2c5f8a; margin-bottom:4px; }
+  .info-box-body { font-size:11px; color:#555; line-height:1.7; }
+
+  /* Proposal detail card */
+  .proposal-detail { margin:8px 0; padding:10px 14px; background:#f8fafe; border-radius:8px; border-left:3px solid #2c5f8a; }
+  .proposal-detail-num { font-size:10px; color:#2c5f8a; font-weight:bold; margin-bottom:2px; }
+  .proposal-detail-title { font-size:12px; font-weight:bold; color:#333; margin-bottom:4px; }
+  .proposal-detail-body { font-size:11px; color:#555; line-height:1.7; }
+
+  /* Advice category card */
+  .advice-card { margin:8px 0; padding:10px 14px; background:#fafafa; border-radius:8px; border-left:3px solid #5a9fd4; }
+  .advice-card-title { font-size:11px; font-weight:bold; color:#2c5f8a; margin-bottom:4px; }
+  .advice-card-body { font-size:11px; color:#555; line-height:1.7; }
+
+  /* Glossary */
+  .glossary-item { display:flex; gap:8px; margin-bottom:6px; font-size:11px; padding:4px 0; border-bottom:1px solid #f0f0f0; }
+  .glossary-item:last-child { border:none; }
+  .glossary-term { font-weight:bold; color:#2c5f8a; min-width:130px; flex-shrink:0; }
+  .glossary-def { color:#555; line-height:1.6; }
+
+  /* Disclaimer */
+  .disclaimer { background:#f9f9f9; border-radius:6px; padding:10px 14px; font-size:9px; color:#999; line-height:1.6; margin-top:20px; }
+</style>
+</head>
+<body>
+
+<!-- ======= ページ1: 表紙 + 睡眠データ詳細 ======= -->
+<div class="page">
+  <div class="header">
+    <div class="header-en">SLEEP ANALYSIS REPORT — DETAILED</div>
+    <div class="header-title">睡眠解析レポート 詳細版</div>
+    <div class="header-subtitle">ねむりの相談所 ｜ 測定期間：{{PERIOD_START}} 〜 {{PERIOD_END}}（{{PERIOD_DAYS}}日間）</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">1. 睡眠データ詳細</div>
+    <div class="section-body">
+      {{SLEEP_DATA_DETAIL_TEXT}}
+    </div>
+    {{DAILY_DATA_TABLE}}
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. 入眠時の体の向き</div>
+    <div class="section-body">
+      {{SLEEP_DIRECTION_DETAIL}}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. ソーシャルジェットラグ 詳細</div>
+    <div class="section-body">
+      {{JETLAG_DETAIL_TEXT}}
+    </div>
+    {{JETLAG_DAILY_TABLE}}
+    <div class="highlight-box">
+      <div class="highlight-box-title">最もズレが大きかった日</div>
+      <div class="highlight-box-body">{{JETLAG_MAX_DAY_DETAIL}}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= ページ2: ストレス・生活習慣・提案詳細 ======= -->
+<div class="page">
+  <div class="page-header">
+    <span>睡眠解析レポート 詳細版</span>
+    <span>{{PERIOD_START}} 〜 {{PERIOD_END}}</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. ストレスと睡眠の関連</div>
+    <div class="section-body">
+      {{STRESS_DETAIL_TEXT}}
+    </div>
+    <div class="info-box">
+      <div class="info-box-title">PSS（知覚されたストレス尺度）とは？</div>
+      <div class="info-box-body">{{PSS_EXPLANATION}}</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">5. 生活習慣 カテゴリ別アドバイス</div>
+    <div class="section-body">
+      {{HABIT_CATEGORY_ADVICE}}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">6. 改善提案 詳細</div>
+    {{PROPOSAL_ALL_DETAILS}}
+  </div>
+</div>
+
+<!-- ======= ページ3: 用語集 + 免責 ======= -->
+<div class="page">
+  <div class="page-header">
+    <span>睡眠解析レポート 詳細版</span>
+    <span>{{PERIOD_START}} 〜 {{PERIOD_END}}</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">7. 用語集</div>
+    <div class="section-body">
+      {{GLOSSARY_ITEMS}}
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    ※本レポートは睡眠状態を把握し、生活習慣や睡眠環境の見直しのヒントを提供するものです。医療行為・診断を行うものではありません。体調不良が続く場合は医療機関へご相談ください。
+  </div>
+</div>
+
+</body>
+</html>

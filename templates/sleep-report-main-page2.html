@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>睡眠解析レポート - 2</title>
+<style>
+  @page { size: A4; margin: 15mm 12mm; }
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; border-radius: 0; }
+  }
+  body {
+    font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: #e8eaed;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 595px;
+    min-height: 842px;
+    background: white;
+    padding: 28px 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header (compact) */
+  .header-compact { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid #2c5f8a; }
+  .header-compact-title { font-size:14px; font-weight:bold; color:#2c5f8a; }
+  .header-compact-right { font-size:9px; color:#999; }
+
+  /* Section title */
+  .section-title { font-size:12px; font-weight:bold; color:#2c5f8a; margin:14px 0 8px; padding-left:8px; border-left:3px solid #2c5f8a; }
+
+  /* Additional proposals */
+  .proposal-list { margin-bottom:16px; }
+  .proposal-item { display:flex; gap:6px; align-items:start; margin-bottom:6px; font-size:11px; line-height:1.5; }
+  .proposal-num { background:#5a9fd4; color:white; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:10px; font-weight:bold; }
+  .proposal-sub { font-size:9px; color:#999; margin-top:1px; }
+
+  /* Image grid */
+  .image-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+  .image-slot { flex:1 1 calc(50% - 5px); min-width:240px; border:1px solid #e0e7ef; border-radius:8px; overflow:hidden; }
+  .image-slot-title { background:#f5f7fa; padding:6px 10px; font-size:10px; font-weight:bold; color:#2c5f8a; }
+  .image-slot-body { height:160px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#bbb; background:#fafafa; overflow:hidden; }
+  .image-slot-body img { max-width:100%; max-height:100%; object-fit:contain; }
+
+  /* Sleep time table */
+  .sleep-table { width:100%; border-collapse:collapse; font-size:10px; margin-bottom:16px; }
+  .sleep-table th { background:#2c5f8a; color:white; padding:5px 8px; text-align:center; font-weight:normal; }
+  .sleep-table td { padding:5px 8px; border-bottom:1px solid #eee; text-align:center; }
+  .sleep-table tr:nth-child(even) td { background:#f9fbfd; }
+
+  /* Disclaimer */
+  .disclaimer { background:#f9f9f9; border-radius:6px; padding:10px 14px; font-size:9px; color:#999; line-height:1.6; margin-top:auto; }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- ヘッダー (コンパクト) -->
+  <div class="header-compact">
+    <div class="header-compact-title">睡眠解析レポート（2/2）</div>
+    <div class="header-compact-right">ねむりの相談所 ｜ {{PERIOD_START}} 〜 {{PERIOD_END}}</div>
+  </div>
+
+  <!-- 追加の改善提案 -->
+  <div class="section-title">追加の改善提案（できそうなことから）</div>
+  <div class="proposal-list">
+    {{PROPOSAL_ADDITIONAL5}}
+  </div>
+
+  <!-- 画像貼付枠 -->
+  <div class="section-title">測定結果</div>
+  <div class="image-grid">
+    <div class="image-slot">
+      <div class="image-slot-title">体圧測定</div>
+      <div class="image-slot-body">{{BODY_PRESSURE_IMAGE}}</div>
+    </div>
+    <div class="image-slot">
+      <div class="image-slot-title">PIMAPITTA</div>
+      <div class="image-slot-body">{{PIMAPITTA_IMAGE}}</div>
+    </div>
+    <div class="image-slot">
+      <div class="image-slot-title">枕判定</div>
+      <div class="image-slot-body">{{PILLOW_IMAGE}}</div>
+    </div>
+    <div class="image-slot">
+      <div class="image-slot-title">マットレス判定</div>
+      <div class="image-slot-body">{{MATTRESS_IMAGE}}</div>
+    </div>
+  </div>
+
+  <!-- 年齢別理想睡眠時間表 -->
+  <div class="section-title">年齢別 理想睡眠時間（参考）</div>
+  <table class="sleep-table">
+    <tr>
+      <th>年齢</th>
+      <th>10代</th>
+      <th>20代</th>
+      <th>30代</th>
+      <th>40代</th>
+      <th>50代</th>
+      <th>60代</th>
+      <th>70代以上</th>
+    </tr>
+    <tr>
+      <td style="font-weight:bold; color:#2c5f8a;">理想</td>
+      <td>8〜10h</td>
+      <td>7〜9h</td>
+      <td>7〜8.5h</td>
+      <td>7〜8h</td>
+      <td>6.5〜7.5h</td>
+      <td>6〜7h</td>
+      <td>5.5〜7h</td>
+    </tr>
+  </table>
+
+  <!-- 免責文 -->
+  <div class="disclaimer">
+    ※本レポートは睡眠状態を把握し、生活習慣や睡眠環境の見直しのヒントを提供するものです。医療行為・診断を行うものではありません。体調不良が続く場合は医療機関へご相談ください。
+  </div>
+</div>
+</body>
+</html>

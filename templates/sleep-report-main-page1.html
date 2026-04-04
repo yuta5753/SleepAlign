@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>睡眠解析レポート</title>
+<style>
+  @page { size: A4; margin: 15mm 12mm; }
+  @media print {
+    body { background: white; padding: 0; }
+    .page { box-shadow: none; border-radius: 0; }
+  }
+  body {
+    font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: #e8eaed;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 595px;
+    min-height: 842px;
+    background: white;
+    padding: 28px 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+  }
+
+  /* Header */
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding-bottom:10px; border-bottom:3px solid #2c5f8a; }
+  .header-title { font-size:20px; font-weight:bold; color:#2c5f8a; }
+  .header-sub { font-size:9px; color:#aaa; letter-spacing:1px; }
+  .header-right { text-align:right; font-size:10px; color:#666; line-height:1.6; }
+
+  /* Score cards */
+  .score-row { display:flex; gap:10px; margin-bottom:14px; }
+  .score-card { flex:1; border-radius:8px; padding:12px 10px; text-align:center; }
+  .score-card.blue { background:#e8f4f8; }
+  .score-card.orange { background:#fff3e0; }
+  .score-card.green { background:#e8f5e9; }
+  .score-label { font-size:10px; color:#666; margin-bottom:2px; }
+  .score-value { font-size:30px; font-weight:bold; }
+  .score-card.blue .score-value { color:#2c5f8a; }
+  .score-card.orange .score-value { color:#e67e22; font-size:20px; }
+  .score-card.green .score-value { color:#27ae60; font-size:20px; }
+  .score-unit { font-size:9px; color:#999; }
+
+  /* Section title */
+  .section-title { font-size:12px; font-weight:bold; color:#2c5f8a; margin:12px 0 6px; padding-left:8px; border-left:3px solid #2c5f8a; }
+
+  /* Top grid: summary + balance */
+  .top-grid { display:flex; gap:10px; margin-bottom:12px; }
+  .summary-box, .balance-box { flex:1; background:#f5f7fa; border-radius:8px; padding:10px; }
+  .metric-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #eee; font-size:11px; }
+  .metric-row:last-child { border:none; }
+  .metric-label { color:#555; }
+  .metric-value { font-weight:bold; color:#2c5f8a; }
+  .metric-ideal { font-size:9px; color:#aaa; margin-left:4px; }
+  .balance-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #eee; font-size:11px; }
+  .balance-row:last-child { border:none; }
+  .balance-stars { color:#2c5f8a; font-size:13px; letter-spacing:1px; }
+  .balance-comment { font-size:9px; color:#999; }
+
+  /* Mid grid: direction + awakening + jetlag */
+  .mid-grid { display:flex; gap:8px; margin-bottom:12px; }
+  .mid-card { flex:1; background:#f5f7fa; border-radius:8px; padding:10px; }
+  .mid-card-title { font-size:10px; font-weight:bold; color:#2c5f8a; margin-bottom:4px; }
+  .bar-wrap { margin-bottom:4px; }
+  .bar-label { display:flex; justify-content:space-between; font-size:9px; color:#666; margin-bottom:2px; }
+  .bar-bg { height:10px; background:#e0e7ef; border-radius:3px; }
+  .bar-fill { height:100%; border-radius:3px; }
+  .jetlag-highlight { display:flex; align-items:center; gap:8px; }
+  .jetlag-value { font-size:24px; font-weight:bold; color:#e67e22; line-height:1; }
+  .jetlag-unit { font-size:10px; color:#e67e22; }
+  .jetlag-text { font-size:9px; color:#666; line-height:1.4; }
+  .direction-legend { font-size:9px; line-height:1.7; }
+  .direction-legend span { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:3px; vertical-align:middle; }
+
+  /* Two column: PSS + Habit */
+  .two-col { display:flex; gap:10px; margin-bottom:12px; }
+  .col { flex:1; }
+  .mini-table { width:100%; font-size:10px; border-collapse:collapse; }
+  .mini-table th { background:#2c5f8a; color:white; padding:4px 6px; text-align:left; font-weight:normal; font-size:9px; }
+  .mini-table td { padding:4px 6px; border-bottom:1px solid #eee; }
+  .eval-badge { display:inline-block; padding:1px 6px; border-radius:10px; font-size:9px; }
+  .eval-good { background:#e8f5e9; color:#27ae60; }
+  .eval-warn { background:#fff3e0; color:#e67e22; }
+  .eval-info { background:#e8f4f8; color:#2c5f8a; }
+
+  /* Proposal */
+  .proposal-box { background:#f8fafe; border-radius:8px; padding:12px; border-left:4px solid #2c5f8a; margin-bottom:12px; }
+  .proposal-title { font-size:11px; font-weight:bold; color:#2c5f8a; margin-bottom:8px; }
+  .proposal-item { display:flex; gap:6px; align-items:start; margin-bottom:6px; font-size:11px; line-height:1.5; }
+  .proposal-num { background:#2c5f8a; color:white; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:10px; font-weight:bold; }
+  .proposal-sub { font-size:9px; color:#999; margin-top:1px; }
+
+  /* Product recommendation */
+  .product-row { display:flex; gap:10px; }
+  .product-card { flex:1; border:1px solid #e0e7ef; border-radius:8px; padding:10px; text-align:center; }
+  .product-title { font-size:9px; color:#2c5f8a; font-weight:bold; margin-bottom:4px; }
+  .product-image { background:#f5f7fa; border-radius:6px; height:40px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#aaa; margin-bottom:4px; }
+  .product-name { font-size:10px; color:#555; }
+  .product-comment { font-size:9px; color:#999; }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- ヘッダー -->
+  <div class="header">
+    <div>
+      <div class="header-title">睡眠解析レポート</div>
+      <div class="header-sub">SLEEP ANALYSIS REPORT</div>
+    </div>
+    <div class="header-right">
+      ねむりの相談所<br>
+      測定期間：{{PERIOD_START}} 〜 {{PERIOD_END}}（{{PERIOD_DAYS}}日間）
+    </div>
+  </div>
+
+  <!-- スコアカード -->
+  <div class="score-row">
+    <div class="score-card blue">
+      <div class="score-label">総合スコア</div>
+      <div class="score-value">{{TOTAL_SCORE}}</div>
+      <div class="score-unit">/100</div>
+    </div>
+    <div class="score-card orange">
+      <div class="score-label">ストレスリスク</div>
+      <div class="score-value">{{STRESS_RISK}}</div>
+      <div class="score-unit">PSS: {{STRESS_LEVEL}}</div>
+    </div>
+    <div class="score-card green">
+      <div class="score-label">生活習慣</div>
+      <div class="score-value">{{HABIT_GRADE}}</div>
+      <div class="score-unit">{{HABIT_COMMENT}}</div>
+    </div>
+  </div>
+
+  <!-- 睡眠サマリー ＆ バランス評価 -->
+  <div class="section-title">睡眠サマリー ＆ バランス評価</div>
+  <div class="top-grid">
+    <div class="summary-box">
+      <div class="metric-row">
+        <span class="metric-label">平均睡眠時間</span>
+        <span><span class="metric-value">{{AVG_SLEEP_TIME}}</span><span class="metric-ideal">理想 {{IDEAL_SLEEP_TIME}}</span></span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">寝つき平均</span>
+        <span><span class="metric-value">{{AVG_ONSET_TIME}}</span><span class="metric-ideal">理想 10分</span></span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">寝返り回数</span>
+        <span><span class="metric-value">{{AVG_TURNOVER}}</span><span class="metric-ideal">適正 20〜30</span></span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">活動量平均</span>
+        <span><span class="metric-value">{{AVG_ACTIVITY}}</span><span class="metric-ideal">理想 3以上</span></span>
+      </div>
+    </div>
+    <div class="balance-box">
+      {{BALANCE_ROWS}}
+    </div>
+  </div>
+
+  <!-- 中段3列: 体の向き / 覚醒回数 / ジェットラグ -->
+  <div class="mid-grid">
+    <div class="mid-card">
+      <div class="mid-card-title">体の向き</div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        {{DIRECTION_SVG}}
+        <div class="direction-legend">
+          {{DIRECTION_LEGEND}}
+        </div>
+      </div>
+    </div>
+    <div class="mid-card">
+      <div class="mid-card-title">覚醒回数</div>
+      {{AWAKENING_BARS}}
+    </div>
+    <div class="mid-card" style="background:#fff8f0; border:1px solid #fce4c0;">
+      <div class="mid-card-title" style="color:#e67e22;">ソーシャルジェットラグ</div>
+      <div class="jetlag-highlight">
+        <div>
+          <div class="jetlag-value">{{JETLAG_VALUE}}</div>
+          <div class="jetlag-unit">{{JETLAG_UNIT}}</div>
+        </div>
+        <div class="jetlag-text">{{JETLAG_COMMENT}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PSS ＋ 生活習慣 2カラム -->
+  <div class="two-col">
+    <div class="col">
+      <div class="section-title">ストレス（PSS）</div>
+      <table class="mini-table">
+        <tr><th>指標</th><th>結果</th></tr>
+        {{PSS_ROWS}}
+      </table>
+    </div>
+    <div class="col">
+      <div class="section-title">生活習慣（54点版）</div>
+      <table class="mini-table">
+        <tr><th>カテゴリ</th><th>点数</th><th></th></tr>
+        {{HABIT_ROWS}}
+      </table>
+      <div style="text-align:right; font-size:10px; color:#666; margin-top:3px;">総合 {{HABIT_TOTAL}}/54　<strong>評価: {{HABIT_GRADE}}</strong></div>
+    </div>
+  </div>
+
+  <!-- 改善提案 -->
+  <div class="proposal-box">
+    <div class="proposal-title">改善提案（優先度順）</div>
+    {{PROPOSAL_TOP3}}
+  </div>
+
+  <!-- おすすめ商品 -->
+  <div class="product-row">
+    <div class="product-card">
+      <div class="product-title">おすすめ商品 1</div>
+      <div class="product-image">商品画像（スタッフ挿入）</div>
+      <div class="product-name">{{PRODUCT1_NAME}}</div>
+      <div class="product-comment">{{PRODUCT1_COMMENT}}</div>
+    </div>
+    <div class="product-card">
+      <div class="product-title">おすすめ商品 2</div>
+      <div class="product-image">商品画像（スタッフ挿入）</div>
+      <div class="product-name">{{PRODUCT2_NAME}}</div>
+      <div class="product-comment">{{PRODUCT2_COMMENT}}</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
