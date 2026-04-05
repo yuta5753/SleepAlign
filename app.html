@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SleepAlign">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<title>SleepAlign - 寝姿勢プロットツール</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+  .header {
+    background: #16213e;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #0f3460;
+  }
+  .header h1 { font-size: 18px; font-weight: 600; color: #e94560; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-primary { background: #e94560; color: #fff; }
+  .btn-secondary { background: #533483; color: #fff; }
+  .btn-next { background: #4ecca3; color: #111; }
+  .btn-outline { background: transparent; color: #aaa; border: 1px solid #555; }
+  .btn-save { background: #0f3460; color: #fff; }
+  .btn:disabled { opacity: 0.3; cursor: default; }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+  /* 画面1: スタート */
+  .start-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 54px);
+    height: calc(100dvh - 54px);
+    gap: 20px;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .start-area p { font-size: 16px; color: #888; text-align: center; line-height: 1.6; }
+  .start-area .btn { font-size: 16px; padding: 12px 28px; }
+  .name-input {
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: #eee;
+    font-size: 16px;
+    width: 260px;
+    text-align: center;
+    outline: none;
+  }
+  .name-input::placeholder { color: #555; }
+  .name-input:focus { border-color: #e94560; }
+  input[type="file"] { display: none; }
+  .pose-section-label { font-size: 14px; color: #aaa; margin-top: 8px; }
+  .pose-buttons { display: flex; gap: 8px; }
+
+  /* 画面2: プロット */
+  .plot-ui {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 54px);
+    height: calc(100dvh - 54px);
+  }
+  .pose-label {
+    background: #0f3460;
+    padding: 5px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #4ecca3;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+  .guide-bar {
+    background: #16213e;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 1px solid #0f3460;
+    flex-shrink: 0;
+  }
+  .guide-bar .point-name { color: #e94560; }
+  .guide-bar .point-num { color: #888; margin-left: 8px; }
+  .guide-bar .drag-hint { color: #4ecca3; font-size: 12px; display: block; margin-top: 2px; }
+  .canvas-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #111;
+    overflow: hidden;
+    touch-action: none;
+  }
+  canvas { display: block; }
+  .zoom-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.6);
+    color: #4ecca3;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  .point-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: #1a1a2e;
+    flex-shrink: 0;
+  }
+  .point-dot {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    border: 2px solid #333; color: #555;
+    transition: all 0.2s;
+  }
+  .point-dot.active { border-color: #e94560; color: #e94560; animation: pulse 1s infinite; }
+  .point-dot.done { border-color: #4ecca3; background: #4ecca3; color: #111; }
+  .toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #16213e;
+    border-top: 1px solid #0f3460;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  /* 画面3: 比較 */
+  .compare-scroll {
+    height: calc(100vh - 54px);
+    height: calc(100dvh - 54px);
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .compare-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #4ecca3;
+  }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .compare-card {
+    background: #16213e;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .compare-card-label {
+    padding: 6px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4ecca3;
+    background: #0f3460;
+  }
+  .compare-card img { width: 100%; display: block; }
+  .compare-single { max-width: 600px; margin: 0 auto 16px; }
+  .compare-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* iPad最適化 */
+  @media (min-width: 768px) {
+    .header { padding: 14px 24px; }
+    .header h1 { font-size: 22px; }
+    .btn { padding: 10px 20px; font-size: 16px; }
+    .start-area { gap: 28px; }
+    .start-area .btn { font-size: 18px; padding: 16px 36px; }
+    .name-input { width: 320px; font-size: 18px; padding: 14px 20px; }
+    .pose-section-label { font-size: 16px; }
+    .pose-label { font-size: 16px; padding: 8px 16px; }
+    .guide-bar { font-size: 16px; padding: 10px 16px; }
+    .point-dot { width: 38px; height: 38px; font-size: 13px; }
+    .toolbar { gap: 10px; padding: 10px 20px; }
+    .compare-grid { gap: 12px; }
+    .compare-card-label { font-size: 15px; padding: 8px; }
+  }
+
+  /* iPad横向き */
+  @media (min-width: 1024px) {
+    .start-area .btn { font-size: 20px; padding: 18px 40px; }
+    .compare-grid { max-width: 900px; margin: 0 auto 16px; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(233,69,96,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(233,69,96,0); }
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== 画面1: スタート ===== -->
+<div id="screen-start">
+  <div class="header"><h1>SleepAlign</h1></div>
+  <div class="start-area">
+    <p>寝姿勢の写真を選択してプロット</p>
+    <input class="name-input" id="name-input" type="text" placeholder="お客様のお名前（任意）" maxlength="20">
+    <p class="pose-section-label">仰向け</p>
+    <div class="pose-buttons">
+      <label class="btn btn-primary" for="file-supine">写真を選択</label>
+      <input type="file" id="file-supine" accept="image/*">
+      <label class="btn btn-secondary" for="camera-supine">カメラで撮影</label>
+      <input type="file" id="camera-supine" accept="image/*" capture="environment">
+    </div>
+    <p class="pose-section-label">横向き</p>
+    <div class="pose-buttons">
+      <label class="btn btn-primary" for="file-side">写真を選択</label>
+      <input type="file" id="file-side" accept="image/*">
+      <label class="btn btn-secondary" for="camera-side">カメラで撮影</label>
+      <input type="file" id="camera-side" accept="image/*" capture="environment">
+    </div>
+    <p style="font-size:13px; color:#555;">どちらか1枚だけでもOK</p>
+  </div>
+</div>
+
+<!-- ===== 画面2: プロット ===== -->
+<div id="screen-plot" class="hidden">
+  <div class="header">
+    <h1>SleepAlign</h1>
+    <div class="header-right">
+      <button class="btn btn-outline btn-sm" id="btn-back">戻る</button>
+    </div>
+  </div>
+  <div class="plot-ui">
+    <div class="pose-label" id="pose-label">仰向け</div>
+    <div class="guide-bar" id="guide-bar">
+      <span class="point-name" id="guide-name">頭</span>の位置をタップ
+      <span class="point-num" id="guide-num">(1/6)</span>
+    </div>
+    <div class="point-indicators" id="point-indicators">
+      <div class="point-dot active" data-idx="0">頭</div>
+      <div class="point-dot" data-idx="1">首</div>
+      <div class="point-dot" data-idx="2">肩</div>
+      <div class="point-dot" data-idx="3">腰</div>
+      <div class="point-dot" data-idx="4">骨盤</div>
+      <div class="point-dot" data-idx="5">膝</div>
+    </div>
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="canvas"></canvas>
+      <div class="zoom-badge hidden" id="zoom-badge">x1.0</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-outline btn-sm" id="btn-undo" disabled>1つ戻す</button>
+      <button class="btn btn-outline btn-sm" id="btn-reset" disabled>リセット</button>
+      <button class="btn btn-outline btn-sm" id="btn-zoom-reset" style="display:none;">ズームリセット</button>
+      <button class="btn btn-next" id="btn-done" disabled>確定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 画面3: 比較 ===== -->
+<div id="screen-compare" class="hidden">
+  <div class="header">
+    <h1>SleepAlign</h1>
+  </div>
+  <div class="compare-scroll">
+    <div class="compare-title" id="compare-title">プロット結果</div>
+    <div id="compare-content"></div>
+    <div class="compare-actions">
+      <button class="btn btn-save" id="btn-save-all">画像を保存</button>
+      <button class="btn btn-primary" id="btn-new-session">新しいお客様</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const POINTS = [
+  { key: "head",     label: "頭",   color: "#e94560" },
+  { key: "neck",     label: "首",   color: "#ff8a5c" },
+  { key: "shoulder", label: "肩",   color: "#ffd460" },
+  { key: "waist",    label: "腰",   color: "#4ecca3" },
+  { key: "pelvis",   label: "骨盤", color: "#3ec1d3" },
+  { key: "knee",     label: "膝",   color: "#533483" },
+];
+
+// ===== 状態 =====
+let customerName = "";
+let sessions = [];
+let currentSession = null;
+
+// プロット状態
+let img = null;
+let canvas, ctx;
+let plotted = [];     // {x, y} in "logical" canvas coords (zoom=1)
+let imgScale = 1;     // logical canvas -> original image pixels
+let canvasW, canvasH; // logical canvas size (at zoom=1)
+
+// ズーム・パン状態
+let zoom = 1;
+let panX = 0, panY = 0; // offset in display pixels
+
+// ドラッグ状態
+let draggingIdx = -1;    // ドラッグ中の点のindex (-1 = なし)
+let isDragging = false;
+
+// ピンチ状態
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
+let pinchMidX = 0, pinchMidY = 0;
+let isPinching = false;
+let panStartX = 0, panStartY = 0;
+let panStartPanX = 0, panStartPanY = 0;
+
+// ===== DOM =====
+const screenStart   = document.getElementById("screen-start");
+const screenPlot    = document.getElementById("screen-plot");
+const screenCompare = document.getElementById("screen-compare");
+const nameInput     = document.getElementById("name-input");
+const fileSupine    = document.getElementById("file-supine");
+const cameraSupine  = document.getElementById("camera-supine");
+const fileSide      = document.getElementById("file-side");
+const cameraSide    = document.getElementById("camera-side");
+const poseLabel     = document.getElementById("pose-label");
+const guideBar      = document.getElementById("guide-bar");
+const pointDots     = document.querySelectorAll(".point-dot");
+const canvasWrap    = document.getElementById("canvas-wrap");
+const zoomBadge     = document.getElementById("zoom-badge");
+const btnBack       = document.getElementById("btn-back");
+const btnUndo       = document.getElementById("btn-undo");
+const btnReset      = document.getElementById("btn-reset");
+const btnZoomReset  = document.getElementById("btn-zoom-reset");
+const btnDone       = document.getElementById("btn-done");
+const btnSaveAll    = document.getElementById("btn-save-all");
+const btnNewSession = document.getElementById("btn-new-session");
+const compareTitle  = document.getElementById("compare-title");
+const compareContent= document.getElementById("compare-content");
+
+canvas = document.getElementById("canvas");
+ctx = canvas.getContext("2d");
+
+// ===== 画面1: スタート =====
+fileSupine.addEventListener("change", (e) => { if (e.target.files[0]) startSession("supine", e.target.files[0]); });
+cameraSupine.addEventListener("change", (e) => { if (e.target.files[0]) startSession("supine", e.target.files[0]); });
+fileSide.addEventListener("change", (e) => { if (e.target.files[0]) startSession("side", e.target.files[0]); });
+cameraSide.addEventListener("change", (e) => { if (e.target.files[0]) startSession("side", e.target.files[0]); });
+
+function startSession(type, file) {
+  customerName = nameInput.value.trim();
+  sessions = [];
+  loadImageForPlot(type, file);
+}
+
+function loadImageForPlot(type, file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    img = new Image();
+    img.onload = () => {
+      currentSession = { type };
+      plotted = [];
+      zoom = 1; panX = 0; panY = 0;
+      draggingIdx = -1;
+      showPlotScreen(type);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== 画面2: プロット =====
+function showPlotScreen(type) {
+  screenStart.classList.add("hidden");
+  screenCompare.classList.add("hidden");
+  screenPlot.classList.remove("hidden");
+  poseLabel.textContent = type === "supine" ? "仰向け" : "横向き";
+  setupCanvas();
+  updatePlotUI();
+  draw();
+}
+
+btnBack.addEventListener("click", () => {
+  screenPlot.classList.add("hidden");
+  screenStart.classList.remove("hidden");
+  resetFileInputs();
+});
+
+function resetFileInputs() {
+  fileSupine.value = "";
+  cameraSupine.value = "";
+  fileSide.value = "";
+  cameraSide.value = "";
+}
+
+function setupCanvas() {
+  const wrap = canvasWrap;
+  const maxW = wrap.clientWidth;
+  const maxH = wrap.clientHeight || (window.innerHeight - 240);
+  const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+  canvasW = Math.round(img.width * ratio);
+  canvasH = Math.round(img.height * ratio);
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvasW * dpr;
+  canvas.height = canvasH * dpr;
+  canvas.style.width = canvasW + "px";
+  canvas.style.height = canvasH + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  imgScale = img.width / canvasW;
+}
+
+// ===== 座標変換 =====
+// logical (zoom=1のキャンバス座標) → display (画面上のキャンバス座標)
+function toDisplay(lx, ly) {
+  return { x: lx * zoom + panX, y: ly * zoom + panY };
+}
+// display → logical
+function toLogical(dx, dy) {
+  return { x: (dx - panX) / zoom, y: (dy - panY) / zoom };
+}
+// ブラウザイベント → display座標
+function eventToDisplay(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) * (canvasW / rect.width),
+    y: (e.clientY - rect.top) * (canvasH / rect.height)
+  };
+}
+
+// ===== 描画 =====
+function draw() {
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.save();
+  ctx.translate(panX, panY);
+  ctx.scale(zoom, zoom);
+  ctx.drawImage(img, 0, 0, canvasW, canvasH);
+  ctx.restore();
+
+  if (plotted.length >= 2) {
+    // 基準直線（黄色破線）
+    const dp0 = toDisplay(plotted[0].x, plotted[0].y);
+    const dpN = toDisplay(plotted[plotted.length - 1].x, plotted[plotted.length - 1].y);
+    ctx.save();
+    ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = "rgba(255, 255, 0, 0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(dp0.x, dp0.y);
+    ctx.lineTo(dpN.x, dpN.y);
+    ctx.stroke();
+    ctx.restore();
+
+    // プロット線（白）
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    const d0 = toDisplay(plotted[0].x, plotted[0].y);
+    ctx.moveTo(d0.x, d0.y);
+    for (let i = 1; i < plotted.length; i++) {
+      const di = toDisplay(plotted[i].x, plotted[i].y);
+      ctx.lineTo(di.x, di.y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawPoints();
+  drawDeviationsDisplay();
+
+  // ズーム表示
+  if (zoom > 1.05) {
+    zoomBadge.textContent = `x${zoom.toFixed(1)}`;
+    zoomBadge.classList.remove("hidden");
+    btnZoomReset.style.display = "";
+  } else {
+    zoomBadge.classList.add("hidden");
+    btnZoomReset.style.display = "none";
+  }
+}
+
+function drawDeviationsDisplay() {
+  if (plotted.length < 3) return;
+  const first = plotted[0], last = plotted[plotted.length - 1];
+  const dx = last.x - first.x, dy = last.y - first.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+
+  for (let i = 1; i < plotted.length - 1; i++) {
+    const t = ((plotted[i].x - first.x) * dx + (plotted[i].y - first.y) * dy) / (len * len);
+    const refLX = first.x + t * dx, refLY = first.y + t * dy;
+    const dist = Math.sqrt((plotted[i].x - refLX) ** 2 + (plotted[i].y - refLY) ** 2);
+    if (dist > 3) {
+      const dRef = toDisplay(refLX, refLY);
+      const dPt = toDisplay(plotted[i].x, plotted[i].y);
+      ctx.save();
+      ctx.strokeStyle = "#e94560";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(dRef.x, dRef.y);
+      ctx.lineTo(dPt.x, dPt.y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(dRef.x, dRef.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff0";
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function drawPoints() {
+  const r = Math.max(5, canvasW / 120);
+  for (let i = 0; i < plotted.length; i++) {
+    const p = plotted[i], pt = POINTS[i];
+    const dp = toDisplay(p.x, p.y);
+    const isBeingDragged = (draggingIdx === i);
+
+    ctx.beginPath();
+    ctx.arc(dp.x, dp.y, isBeingDragged ? r * 1.5 : r, 0, Math.PI * 2);
+    ctx.fillStyle = pt.color;
+    ctx.fill();
+    ctx.strokeStyle = isBeingDragged ? "#fff" : "rgba(255,255,255,0.8)";
+    ctx.lineWidth = isBeingDragged ? 3 : 2;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.font = `bold ${Math.max(13, canvasW / 50)}px -apple-system, sans-serif`;
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "rgba(0,0,0,0.7)";
+    ctx.lineWidth = 3;
+    ctx.strokeText(pt.label, dp.x + r + 4, dp.y + 5);
+    ctx.fillText(pt.label, dp.x + r + 4, dp.y + 5);
+    ctx.restore();
+  }
+}
+
+// ===== タッチ操作 =====
+function findNearPoint(dx, dy) {
+  const hitR = Math.max(20, canvasW / 30); // タップ判定の半径（大きめ）
+  let minDist = Infinity, minIdx = -1;
+  for (let i = 0; i < plotted.length; i++) {
+    const dp = toDisplay(plotted[i].x, plotted[i].y);
+    const dist = Math.sqrt((dp.x - dx) ** 2 + (dp.y - dy) ** 2);
+    if (dist < hitR && dist < minDist) {
+      minDist = dist;
+      minIdx = i;
+    }
+  }
+  return minIdx;
+}
+
+// --- マウス操作（デスクトップ） ---
+let mouseDownPos = null;
+canvas.addEventListener("mousedown", (e) => {
+  if (isPinching) return;
+  const dp = eventToDisplay(e);
+  mouseDownPos = { ...dp, time: Date.now() };
+
+  // 既存の点にヒットするか
+  const hitIdx = findNearPoint(dp.x, dp.y);
+  if (hitIdx >= 0) {
+    draggingIdx = hitIdx;
+    isDragging = true;
+    draw();
+    return;
+  }
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!isDragging || draggingIdx < 0) return;
+  const dp = eventToDisplay(e);
+  const lp = toLogical(dp.x, dp.y);
+  plotted[draggingIdx] = lp;
+  draw();
+});
+
+canvas.addEventListener("mouseup", (e) => {
+  if (isDragging && draggingIdx >= 0) {
+    draggingIdx = -1;
+    isDragging = false;
+    draw();
+    return;
+  }
+  // クリック（短い押下）で新規ポイント追加
+  if (mouseDownPos && Date.now() - mouseDownPos.time < 300) {
+    const dp = eventToDisplay(e);
+    if (plotted.length < POINTS.length) {
+      const lp = toLogical(dp.x, dp.y);
+      plotted.push(lp);
+      updatePlotUI();
+      draw();
+    }
+  }
+  mouseDownPos = null;
+  draggingIdx = -1;
+  isDragging = false;
+});
+
+// --- タッチ操作（スマホ・iPad） ---
+let touchStartTime = 0;
+let singleTouchId = null;
+
+canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  const touches = e.touches;
+
+  if (touches.length === 2) {
+    // ピンチ開始
+    isPinching = true;
+    isDragging = false;
+    draggingIdx = -1;
+    const t0 = touches[0], t1 = touches[1];
+    pinchStartDist = Math.sqrt((t1.clientX - t0.clientX) ** 2 + (t1.clientY - t0.clientY) ** 2);
+    pinchStartZoom = zoom;
+    const rect = canvas.getBoundingClientRect();
+    pinchMidX = ((t0.clientX + t1.clientX) / 2 - rect.left) * (canvasW / rect.width);
+    pinchMidY = ((t0.clientY + t1.clientY) / 2 - rect.top) * (canvasH / rect.height);
+    panStartPanX = panX;
+    panStartPanY = panY;
+    return;
+  }
+
+  if (touches.length === 1) {
+    isPinching = false;
+    const rect = canvas.getBoundingClientRect();
+    const dx = (touches[0].clientX - rect.left) * (canvasW / rect.width);
+    const dy = (touches[0].clientY - rect.top) * (canvasH / rect.height);
+    touchStartTime = Date.now();
+    singleTouchId = touches[0].identifier;
+
+    // 既存の点にヒットするか
+    const hitIdx = findNearPoint(dx, dy);
+    if (hitIdx >= 0) {
+      draggingIdx = hitIdx;
+      isDragging = true;
+      draw();
+      return;
+    }
+
+    // ズーム中なら1本指パン
+    if (zoom > 1.05) {
+      panStartX = touches[0].clientX;
+      panStartY = touches[0].clientY;
+      panStartPanX = panX;
+      panStartPanY = panY;
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  const touches = e.touches;
+
+  if (isPinching && touches.length === 2) {
+    const t0 = touches[0], t1 = touches[1];
+    const dist = Math.sqrt((t1.clientX - t0.clientX) ** 2 + (t1.clientY - t0.clientY) ** 2);
+    const newZoom = Math.max(1, Math.min(5, pinchStartZoom * (dist / pinchStartDist)));
+
+    // ピンチ中心を基準にズーム
+    panX = pinchMidX - (pinchMidX - panStartPanX) * (newZoom / pinchStartZoom);
+    panY = pinchMidY - (pinchMidY - panStartPanY) * (newZoom / pinchStartZoom);
+    zoom = newZoom;
+    clampPan();
+    draw();
+    return;
+  }
+
+  if (touches.length === 1) {
+    const rect = canvas.getBoundingClientRect();
+    const dx = (touches[0].clientX - rect.left) * (canvasW / rect.width);
+    const dy = (touches[0].clientY - rect.top) * (canvasH / rect.height);
+
+    if (isDragging && draggingIdx >= 0) {
+      plotted[draggingIdx] = toLogical(dx, dy);
+      draw();
+      return;
+    }
+
+    // 1本指パン（ズーム中のみ）
+    if (zoom > 1.05 && !isDragging) {
+      const scale = canvasW / canvas.getBoundingClientRect().width;
+      panX = panStartPanX + (touches[0].clientX - panStartX) * scale;
+      panY = panStartPanY + (touches[0].clientY - panStartY) * scale;
+      clampPan();
+      draw();
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener("touchend", (e) => {
+  e.preventDefault();
+
+  if (isPinching) {
+    if (e.touches.length === 0) isPinching = false;
+    return;
+  }
+
+  if (isDragging && draggingIdx >= 0) {
+    draggingIdx = -1;
+    isDragging = false;
+    updatePlotUI();
+    draw();
+    return;
+  }
+
+  // シングルタップ → 新規ポイント
+  const elapsed = Date.now() - touchStartTime;
+  if (elapsed < 300 && e.changedTouches.length === 1 && plotted.length < POINTS.length) {
+    const rect = canvas.getBoundingClientRect();
+    const t = e.changedTouches[0];
+    const dx = (t.clientX - rect.left) * (canvasW / rect.width);
+    const dy = (t.clientY - rect.top) * (canvasH / rect.height);
+    const lp = toLogical(dx, dy);
+    plotted.push(lp);
+    updatePlotUI();
+    draw();
+  }
+
+  isDragging = false;
+  draggingIdx = -1;
+}, { passive: false });
+
+// ダブルクリック/ダブルタップでズームトグル
+let lastTapTime = 0;
+canvas.addEventListener("dblclick", (e) => {
+  e.preventDefault();
+  const dp = eventToDisplay(e);
+  if (zoom < 1.5) {
+    zoomTo(2.5, dp.x, dp.y);
+  } else {
+    zoomTo(1, 0, 0);
+  }
+  draw();
+});
+
+function zoomTo(newZoom, centerX, centerY) {
+  if (newZoom <= 1) {
+    zoom = 1; panX = 0; panY = 0;
+  } else {
+    panX = centerX - (centerX - panX) * (newZoom / zoom);
+    panY = centerY - (centerY - panY) * (newZoom / zoom);
+    zoom = newZoom;
+    clampPan();
+  }
+}
+
+function clampPan() {
+  const maxPanX = 0;
+  const minPanX = canvasW - canvasW * zoom;
+  const maxPanY = 0;
+  const minPanY = canvasH - canvasH * zoom;
+  panX = Math.min(maxPanX, Math.max(minPanX, panX));
+  panY = Math.min(maxPanY, Math.max(minPanY, panY));
+}
+
+btnZoomReset.addEventListener("click", () => {
+  zoom = 1; panX = 0; panY = 0;
+  draw();
+});
+
+// ===== UI更新 =====
+function updatePlotUI() {
+  const idx = plotted.length;
+  const allDone = idx >= POINTS.length;
+  if (allDone) {
+    guideBar.innerHTML = '<span style="color:#4ecca3">プロット完了</span><span class="drag-hint">点をドラッグで微調整できます</span>';
+  } else {
+    guideBar.innerHTML = `<span class="point-name">${POINTS[idx].label}</span>の位置をタップ <span class="point-num">(${idx + 1}/${POINTS.length})</span>`
+      + (plotted.length > 0 ? '<span class="drag-hint">既存の点はドラッグで移動可</span>' : '');
+  }
+  pointDots.forEach((dot, i) => {
+    dot.classList.remove("active", "done");
+    if (i < idx) dot.classList.add("done");
+    else if (i === idx && !allDone) dot.classList.add("active");
+  });
+  btnUndo.disabled = plotted.length === 0;
+  btnReset.disabled = plotted.length === 0;
+  btnDone.disabled = plotted.length < 2;
+}
+
+btnUndo.addEventListener("click", () => { plotted.pop(); updatePlotUI(); draw(); });
+btnReset.addEventListener("click", () => { plotted = []; updatePlotUI(); draw(); });
+
+// ===== 確定ボタン =====
+btnDone.addEventListener("click", () => {
+  sessions.push({
+    type: currentSession.type,
+    img, plotted: [...plotted], scale: imgScale, canvasW, canvasH,
+  });
+  const doneTypes = sessions.map(s => s.type);
+  const otherType = currentSession.type === "supine" ? "side" : "supine";
+  const otherLabel = otherType === "supine" ? "仰向け" : "横向き";
+
+  if (!doneTypes.includes(otherType)) {
+    showNextPrompt(otherType, otherLabel);
+  } else {
+    showCompare();
+  }
+});
+
+function showNextPrompt(type, label) {
+  screenPlot.classList.add("hidden");
+  const div = document.createElement("div");
+  div.id = "screen-next";
+  div.innerHTML = `
+    <div class="header"><h1>SleepAlign</h1></div>
+    <div class="start-area">
+      <p style="color:#4ecca3; font-size:18px; font-weight:700;">1枚目のプロット完了</p>
+      <p>${label}の写真もプロットしますか？</p>
+      <div class="pose-buttons">
+        <label class="btn btn-next" for="file-next">写真を選択</label>
+        <input type="file" id="file-next" accept="image/*" style="display:none;">
+        <label class="btn btn-secondary" for="camera-next">カメラで撮影</label>
+        <input type="file" id="camera-next" accept="image/*" capture="environment" style="display:none;">
+      </div>
+      <button class="btn btn-outline" id="btn-skip-next">スキップして結果を見る</button>
+    </div>
+  `;
+  document.body.appendChild(div);
+  document.getElementById("file-next").addEventListener("change", (e) => { if (e.target.files[0]) { div.remove(); loadImageForPlot(type, e.target.files[0]); }});
+  document.getElementById("camera-next").addEventListener("change", (e) => { if (e.target.files[0]) { div.remove(); loadImageForPlot(type, e.target.files[0]); }});
+  document.getElementById("btn-skip-next").addEventListener("click", () => { div.remove(); showCompare(); });
+}
+
+// ===== 画面3: 比較 =====
+function showCompare() {
+  screenStart.classList.add("hidden");
+  screenPlot.classList.add("hidden");
+  screenCompare.classList.remove("hidden");
+
+  const dateStr = new Date().toLocaleDateString("ja-JP");
+  compareTitle.textContent = customerName ? `${customerName} さん  ${dateStr}` : dateStr;
+  compareContent.innerHTML = "";
+
+  if (sessions.length === 2) {
+    const grid = document.createElement("div");
+    grid.className = "compare-grid";
+    sessions.forEach(s => {
+      const card = document.createElement("div");
+      card.className = "compare-card";
+      card.innerHTML = `<div class="compare-card-label">${s.type === "supine" ? "仰向け" : "横向き"}</div>`;
+      const imgEl = document.createElement("img");
+      imgEl.src = renderSessionToDataURL(s);
+      card.appendChild(imgEl);
+      grid.appendChild(card);
+    });
+    compareContent.appendChild(grid);
+  } else {
+    const s = sessions[0];
+    const wrap = document.createElement("div");
+    wrap.className = "compare-single compare-card";
+    wrap.innerHTML = `<div class="compare-card-label">${s.type === "supine" ? "仰向け" : "横向き"}</div>`;
+    const imgEl = document.createElement("img");
+    imgEl.src = renderSessionToDataURL(s);
+    imgEl.style.width = "100%";
+    wrap.appendChild(imgEl);
+    compareContent.appendChild(wrap);
+  }
+}
+
+function renderSessionToDataURL(session) {
+  const c = document.createElement("canvas");
+  c.width = session.img.width;
+  c.height = session.img.height;
+  const sc = c.getContext("2d");
+  const s = session.scale;
+  const r = Math.max(8, session.img.width / 120);
+  const pts = session.plotted;
+
+  sc.drawImage(session.img, 0, 0);
+
+  if (pts.length >= 2) {
+    sc.save();
+    sc.setLineDash([12, 10]);
+    sc.strokeStyle = "rgba(255, 255, 0, 0.6)";
+    sc.lineWidth = 4;
+    sc.beginPath();
+    sc.moveTo(pts[0].x * s, pts[0].y * s);
+    sc.lineTo(pts[pts.length - 1].x * s, pts[pts.length - 1].y * s);
+    sc.stroke();
+    sc.restore();
+
+    sc.save();
+    sc.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    sc.lineWidth = 5;
+    sc.lineJoin = "round";
+    sc.beginPath();
+    sc.moveTo(pts[0].x * s, pts[0].y * s);
+    for (let i = 1; i < pts.length; i++) sc.lineTo(pts[i].x * s, pts[i].y * s);
+    sc.stroke();
+    sc.restore();
+  }
+
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i], pt = POINTS[i];
+    sc.beginPath();
+    sc.arc(p.x * s, p.y * s, r, 0, Math.PI * 2);
+    sc.fillStyle = pt.color;
+    sc.fill();
+    sc.strokeStyle = "#fff";
+    sc.lineWidth = 2;
+    sc.stroke();
+    sc.save();
+    sc.font = `bold ${Math.max(20, session.img.width / 50)}px -apple-system, sans-serif`;
+    sc.fillStyle = "#fff";
+    sc.strokeStyle = "rgba(0,0,0,0.7)";
+    sc.lineWidth = 4;
+    sc.strokeText(pt.label, p.x * s + r + 6, p.y * s + 7);
+    sc.fillText(pt.label, p.x * s + r + 6, p.y * s + 7);
+    sc.restore();
+  }
+
+  if (pts.length >= 3) {
+    const first = pts[0], last = pts[pts.length - 1];
+    const dx = last.x - first.x, dy = last.y - first.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const t = ((pts[i].x - first.x) * dx + (pts[i].y - first.y) * dy) / (len * len);
+      const refX = first.x + t * dx, refY = first.y + t * dy;
+      const dist = Math.sqrt((pts[i].x - refX) ** 2 + (pts[i].y - refY) ** 2);
+      if (dist > 3) {
+        sc.save();
+        sc.strokeStyle = "#e94560";
+        sc.lineWidth = 4;
+        sc.beginPath();
+        sc.moveTo(refX * s, refY * s);
+        sc.lineTo(pts[i].x * s, pts[i].y * s);
+        sc.stroke();
+        sc.beginPath();
+        sc.arc(refX * s, refY * s, 4, 0, Math.PI * 2);
+        sc.fillStyle = "#ff0";
+        sc.fill();
+        sc.restore();
+      }
+    }
+  }
+
+  return c.toDataURL("image/jpeg", 0.92);
+}
+
+btnSaveAll.addEventListener("click", () => {
+  sessions.forEach(s => {
+    const link = document.createElement("a");
+    const prefix = customerName || "sleepalign";
+    const typeLabel = s.type === "supine" ? "仰向け" : "横向き";
+    link.download = `${prefix}_${typeLabel}.jpg`;
+    link.href = renderSessionToDataURL(s);
+    link.click();
+  });
+});
+
+btnNewSession.addEventListener("click", () => {
+  sessions = [];
+  currentSession = null;
+  plotted = [];
+  nameInput.value = "";
+  resetFileInputs();
+  screenCompare.classList.add("hidden");
+  screenStart.classList.remove("hidden");
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+</body>
+</html>
